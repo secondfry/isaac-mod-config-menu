@@ -1,6 +1,5 @@
 -- Cursor and focus over MenuData, and what each menu input does to the highlighted row.
 local CATEGORIES, TABS, OPTIONS = "categories", "tabs", "options"
-local LAST_KNOWN_TYPE = 8
 local RESTART_POPUP = "This change takes effect after you restart the game."
 local RERUN_POPUP = "This change takes effect from your next run."
 
@@ -10,6 +9,8 @@ return function(api, util, keys)
 		[T.BOOLEAN] = true, [T.NUMBER] = true, [T.SCROLL] = true,
 		[T.KEYBIND_KEYBOARD] = true, [T.KEYBIND_CONTROLLER] = true,
 	}
+	local KNOWN = {}
+	for _, optionType in pairs(T) do KNOWN[optionType] = true end
 	local nav = {
 		CATEGORIES = CATEGORIES, TABS = TABS, OPTIONS = OPTIONS,
 		focus = CATEGORIES, cat = 1, sub = 1, opt = 1, popup = nil,
@@ -36,16 +37,43 @@ return function(api, util, keys)
 
 	function nav.option() return nav.options()[nav.opt] end
 
-	function nav.isKnown(opt)
-		return type(opt.Type) == "number" and opt.Type >= 1 and opt.Type <= LAST_KNOWN_TYPE
+	-- Unknown types and SPACE rows are neither drawn nor selectable.
+	function nav.isDrawn(opt)
+		return opt ~= nil and KNOWN[opt.Type] == true and opt.Type ~= T.SPACE and opt.Display ~= nil
 	end
 
 	function nav.isSelectable(opt)
-		return opt ~= nil and nav.isKnown(opt) and opt.Type ~= T.SPACE and opt.Display ~= nil
-			and not util.Resolve(opt.NoCursorHere)
+		return nav.isDrawn(opt) and not util.Resolve(opt.NoCursorHere)
 	end
 
 	local function wrap(i, n) return (i - 1) % n + 1 end
+
+	local function isOwnPage(id) return api.MenuData[id].Name == util.NAME end
+
+	local function sortKey(id) return tostring(api.MenuData[id].Name):lower() end
+
+	-- MenuData indexes in display order; MenuData itself is never reordered, dependents hold its ids.
+	function nav.order()
+		local ids = {}
+		for id = 1, #api.MenuData do
+			if api.MenuData[id] then ids[#ids + 1] = id end
+		end
+		if not api.Config[util.NAME].SortAlphabetically then return ids end
+		table.sort(ids, function(a, b)
+			if isOwnPage(a) ~= isOwnPage(b) then return isOwnPage(a) end
+			local ka, kb = sortKey(a), sortKey(b)
+			if ka ~= kb then return ka < kb end
+			return a < b
+		end)
+		return ids
+	end
+
+	function nav.position(order)
+		for position, id in ipairs(order) do
+			if id == nav.cat then return position end
+		end
+		return 1
+	end
 
 	local function findSelectable(from, dir)
 		local options = nav.options()
@@ -56,7 +84,7 @@ return function(api, util, keys)
 	end
 
 	function nav.reset()
-		nav.focus, nav.cat, nav.sub, nav.opt, nav.popup = CATEGORIES, 1, 1, 1, nil
+		nav.focus, nav.cat, nav.sub, nav.opt, nav.popup = CATEGORIES, nav.order()[1] or 1, 1, 1, nil
 	end
 
 	local function play(sound, volume) SFXManager():Play(sound, volume or 1) end
@@ -65,9 +93,8 @@ return function(api, util, keys)
 
 	-- Dependents may remove categories or rows while the menu is open.
 	local function clampCursor()
-		local count = #api.MenuData
-		if count == 0 then return nav.reset() end
-		if nav.cat > count then nav.cat, nav.sub, nav.opt, nav.focus = count, 1, 1, CATEGORIES end
+		if #api.MenuData == 0 then return nav.reset() end
+		if api.MenuData[nav.cat] == nil then nav.cat, nav.sub, nav.opt, nav.focus = nav.order()[1], 1, 1, CATEGORIES end
 		if nav.sub > math.max(#nav.subcategories(), 1) then nav.sub, nav.opt = 1, 1 end
 		if nav.focus == TABS and not nav.hasTabBar() then nav.focus = CATEGORIES end
 		if nav.focus == OPTIONS and not nav.isSelectable(nav.option()) then
@@ -115,9 +142,10 @@ return function(api, util, keys)
 
 	local function categoriesInput(frame)
 		if frame.back then return "close" end
-		local count = #api.MenuData
 		if frame.up or frame.down then
-			nav.cat, nav.sub, nav.opt = wrap(nav.cat + (frame.down and 1 or -1), count), 1, 1
+			local order = nav.order()
+			local position = wrap(nav.position(order) + (frame.down and 1 or -1), #order)
+			nav.cat, nav.sub, nav.opt = order[position], 1, 1
 		elseif frame.right or frame.select then
 			if nav.hasTabBar() then nav.focus = TABS else enterOptions() end
 		end
@@ -189,10 +217,13 @@ return function(api, util, keys)
 		local popup = nav.popup
 		local opt = popup.option
 		if popup.kind == "bind" then return bindInput(frame, opt, capture) end
-		local confirm = frame.select or frame.right
-		if not (confirm or frame.back or frame.left) then return end
+		if frame.back or frame.left then
+			nav.popup = nil
+			return
+		end
+		if not (frame.select or frame.right) then return end
 		nav.popup = nil
-		if popup.kind == "confirm" and confirm and opt.OnSelect then opt.OnSelect() end
+		if popup.kind == "confirm" and opt.OnSelect then opt.OnSelect() end
 	end
 
 	function nav.popupText()

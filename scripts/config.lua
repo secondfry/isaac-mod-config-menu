@@ -5,11 +5,8 @@ local json = require("json")
 local GENERAL_KEYS = { HudOffset = true, Overlays = true, ChargeBars = true, BigBooks = true }
 
 return function(api, util)
-	local warned = {}
 	local function warnOnce(key)
-		if warned[key] then return end
-		warned[key] = true
-		print("[Config Menu] Config." .. key .. " is deprecated, use Config.General." .. key)
+		util.warnOnce("Config." .. key, "Config." .. key .. " is deprecated, use Config.General." .. key)
 	end
 
 	local redirect = {
@@ -30,7 +27,7 @@ return function(api, util)
 	local function generalMirror()
 		if not Options then return { HudOffset = 0, Overlays = true, ChargeBars = false, BigBooks = true, Announcer = 0 } end
 		return {
-			HudOffset = util.Clamp(math.floor(Options.HUDOffset * 10 + 0.5), 0, 10),
+			HudOffset = api.GetOffset(),
 			Overlays = true,
 			ChargeBars = Options.ChargeBars,
 			BigBooks = true,
@@ -42,7 +39,7 @@ return function(api, util)
 		LastBackPressed = Keyboard.KEY_ESCAPE,
 		LastSelectPressed = Keyboard.KEY_ENTER,
 		General = generalMirror(),
-		["Mod Config Menu"] = {},
+		[util.NAME] = {},
 	}, redirect)
 	api.Config = setmetatable(util.CopyTable(api.ConfigDefault), redirect)
 

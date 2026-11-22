@@ -55,6 +55,67 @@ test("opening polls -2 and gamepads, never -1, and toggles once per frame", func
 	eq(H.polled[-1], nil, "index -1 never polled")
 end)
 
+test("the controller open button counts on gamepads only, not on the keyboard index", function()
+	local api = open()
+	tap(key(Controller.STICK_RIGHT, -2))
+	eq(api.IsVisible, false, "STICK_RIGHT on -2 does not open")
+end)
+
+test("an open Dead Sea Scrolls menu (IsOpen returns a table) blocks opening", function()
+	local api = open()
+	DeadSeaScrollsMenu = { IsOpen = function() return {} end }
+	tap(key(Keyboard.KEY_L))
+	eq(api.IsVisible, false, "stays closed over DSS")
+end)
+
+local function drawn(pattern)
+	for _, t in ipairs(H.texts) do
+		if t:find(pattern) then return true end
+	end
+	return false
+end
+
+test("another copy loaded first shows the one-menu notice", function()
+	MCM = { Version = 204, MenuData = {} }
+	local api = open()
+	eq(MCM, api, "this copy took the globals")
+	H.render()
+	ok(drawn("Only one Mod Config Menu mod"), "notice drawn")
+end)
+
+test("another copy loaded later shows the notice from the next game start", function()
+	local api = open()
+	H.render()
+	ok(not drawn("Only one Mod Config Menu mod"), "no notice alone")
+	ModConfigMenu = { Version = 204 }
+	H.fire(ModCallbacks.MC_POST_GAME_STARTED, false)
+	H.texts = {}
+	H.render()
+	ok(drawn("Only one Mod Config Menu mod"), "notice drawn")
+	eq(api.IsVisible, false, "menu untouched")
+end)
+
+test("pages list alphabetically by default, own page first, ties by load order; off means load order", function()
+	local api = open()
+	for _, name in ipairs({ "b", "A", "same", "c", "Same" }) do
+		api.AddSetting(name, { Type = 4, Display = name, CurrentSetting = true })
+	end
+	show(api)
+	local function walk()
+		local names = { api.CurrentCategory.Name }
+		for _ = 1, 5 do
+			tap(DOWN)
+			names[#names + 1] = api.CurrentCategory.Name
+		end
+		return table.concat(names, ",")
+	end
+	eq(walk(), "Mod Config Menu,A,b,c,same,Same", "alphabetical")
+	api.Config["Mod Config Menu"].SortAlphabetically = false
+	tap(DOWN)
+	eq(walk(), "Mod Config Menu,b,A,same,c,Same", "load order")
+	eq(api.MenuData[2].Name, "b", "MenuData is never reordered")
+end)
+
 test("the open key is ignored when paused and the menu shuts when the game pauses", function()
 	local api = open()
 	H.paused = true
@@ -314,6 +375,58 @@ test("Restart rows warn once changed", function()
 	ok(found, "warning text drawn")
 	tap(SELECT)
 	eq(box.v, true, "select closed the popup without another change")
+end)
+
+test("the restart warning stays on screen after the menu closes", function()
+	local api = open()
+	row(api, "Warn", { Type = 4, Display = "r", Restart = true }, value(false))
+	show(api)
+	tap(DOWN)
+	tap(RIGHT)
+	tap(RIGHT)
+	tap(SELECT)
+	api.CloseConfigMenu()
+	H.texts = {}
+	H.render()
+	ok(drawn("Restart the game"), "warning drawn while closed")
+end)
+
+test("a popup closes on Back even when Select arrives in the same frame", function()
+	local api = open()
+	local selected = false
+	api.AddSetting("Pop", { Type = 1, Display = "p", Popup = "sure?", OnSelect = function() selected = true end })
+	show(api)
+	tap(DOWN)
+	tap(RIGHT)
+	tap(RIGHT)
+	H.pressAction(A.ACTION_MENUBACK, -2)
+	H.pressAction(A.ACTION_MENUCONFIRM, -2)
+	H.render()
+	eq(selected, false, "Back wins: no OnSelect")
+	tap(RIGHT)
+	tap(SELECT)
+	eq(selected, true, "Select alone confirms")
+end)
+
+test("closing the menu saves", function()
+	local api = open()
+	show(api)
+	api.Config["Mod Config Menu"].ShowControls = false
+	api.CloseConfigMenu()
+	ok(H.modData and H.modData:find('"ShowControls":false'), "saved on close")
+end)
+
+test("a new floor saves only while a game's settings are loaded", function()
+	open()
+	H.fire(ModCallbacks.MC_POST_NEW_LEVEL)
+	eq(H.modData, nil, "no save before the game's load")
+	H.fire(ModCallbacks.MC_POST_GAME_STARTED, true)
+	H.fire(ModCallbacks.MC_POST_NEW_LEVEL)
+	ok(H.modData ~= nil, "saved after the load")
+	H.fire(ModCallbacks.MC_PRE_GAME_EXIT, true)
+	H.modData = nil
+	H.fire(ModCallbacks.MC_POST_NEW_LEVEL)
+	eq(H.modData, nil, "no save after exit until the next game starts")
 end)
 
 test("Display runs once per frame for visible rows only, wherever the cursor is", function()

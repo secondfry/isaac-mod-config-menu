@@ -1,6 +1,7 @@
 -- Input on J510: the keyboard is controller index -2, gamepads 0-4. Index -1 is never read:
 -- it is an any-device index, so a key seen there and on -2 would count twice.
 local INDEXES = { -2, 0, 1, 2, 3, 4 }
+local GAMEPADS = { 0, 1, 2, 3, 4 }
 local DIRECTIONS = {
 	up = { ButtonAction.ACTION_UP, ButtonAction.ACTION_SHOOTUP, ButtonAction.ACTION_MENUUP },
 	down = { ButtonAction.ACTION_DOWN, ButtonAction.ACTION_SHOOTDOWN, ButtonAction.ACTION_MENUDOWN },
@@ -10,25 +11,31 @@ local DIRECTIONS = {
 local BACK = { ButtonAction.ACTION_PILLCARD, ButtonAction.ACTION_MAP, ButtonAction.ACTION_MENUBACK }
 local SELECT = { ButtonAction.ACTION_ITEM, ButtonAction.ACTION_PAUSE, ButtonAction.ACTION_MENUCONFIRM, ButtonAction.ACTION_BOMB }
 local REPEAT_DELAY, REPEAT_EVERY = 20, 5 -- render frames
-local BUTTON_A, BUTTON_B, BUTTON_Y = 4, 5, 7
 local KEY_FIRST, KEY_LAST, BUTTON_LAST = 32, 400, 31
 
-return function(api)
+return function(api, util)
+	local BUTTON_A, BUTTON_B, BUTTON_Y = Controller.BUTTON_A, Controller.BUTTON_B, Controller.BUTTON_Y
 	local input = {}
 	local held = { up = 0, down = 0, left = 0, right = 0 }
 	local forced = {}
 
-	local function menuConfig() return api.Config["Mod Config Menu"] or {} end
-
-	local function onIndexes(index, test)
-		if index ~= nil then return test(index) end
-		for _, i in ipairs(INDEXES) do
+	local function anyOf(indexes, test)
+		for _, i in ipairs(indexes) do
 			if test(i) then return true end
 		end
 		return false
 	end
 
-	-- shortcut: rejects a key whose code % 32 also reads as a gamepad button (an alias seen before J510, unobserved on J510); drop once an input probe shows no alias.
+	local function onIndexes(index, test)
+		if index ~= nil then return test(index) end
+		return anyOf(INDEXES, test)
+	end
+
+	local function gamepadTriggered(button)
+		return anyOf(GAMEPADS, function(i) return Input.IsButtonTriggered(button, i) end)
+	end
+
+	-- shortcut: rejects a key whose code % 32 also reads as a gamepad button: the original's workaround; unobserved on J510. Drop once an input probe shows no alias.
 	local function keyOn(check, key, i)
 		return check(key, i) and not check(key % 32, i)
 	end
@@ -74,8 +81,9 @@ return function(api)
 	end
 
 	function input.forcedValue(entity, hook, action)
-		local player = entity and entity:ToPlayer()
-		local byIndex = player and forced[hook] and forced[hook][player.ControllerIndex]
+		if forced[hook] == nil or entity == nil then return nil end
+		local player = entity:ToPlayer()
+		local byIndex = player and forced[hook][player.ControllerIndex]
 		local entry = byIndex and byIndex[action]
 		if not entry then return nil end
 		if Game():GetFrameCount() < entry.untilFrame then return entry.value end
@@ -134,16 +142,16 @@ return function(api)
 			local n = held[dir]
 			frame[dir] = n == 1 or (n > REPEAT_DELAY and (n - REPEAT_DELAY) % REPEAT_EVERY == 0)
 		end
-		local resetKey = menuConfig().ResetToDefault or -1
+		local resetKey = api.Config[util.NAME].ResetToDefault or -1
 		frame.reset = resetKey >= 0 and api.KeyboardTriggered(resetKey)
 		return frame
 	end
 
 	function input.togglePressed()
-		local cfg = menuConfig()
+		local cfg = api.Config[util.NAME]
 		local key, button = cfg.OpenMenuKeyboard or -1, cfg.OpenMenuController or -1
 		if key >= 0 and api.KeyboardTriggered(key) then return true end
-		return button >= 0 and onIndexes(nil, function(i) return Input.IsButtonTriggered(button, i) end)
+		return button >= 0 and gamepadTriggered(button)
 	end
 
 	function input.capture(optionType)
@@ -155,7 +163,7 @@ return function(api)
 			return nil
 		end
 		for button = 0, BUTTON_LAST do
-			if onIndexes(nil, function(i) return Input.IsButtonTriggered(button, i) end) then return button end
+			if gamepadTriggered(button) then return button end
 		end
 	end
 

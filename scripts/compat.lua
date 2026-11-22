@@ -1,10 +1,7 @@
 -- Legacy globals and members old dependents still read; each points at the one API table.
-return function(api)
-	local warned = {}
+return function(api, util)
 	local function warnOnce(name, replacement)
-		if warned[name] then return end
-		warned[name] = true
-		print("[Config Menu] " .. name .. " is deprecated, use " .. replacement)
+		util.warnOnce(name, name .. " is deprecated, use " .. replacement)
 	end
 
 	local LEGACY_MEMBERS = {
@@ -62,8 +59,7 @@ return function(api)
 
 	api.OldRegisterMod = Isaac.RegisterMod
 	function api.RegisterMod(mod, name, apiVersion)
-		local registered, message = pcall(api.OldRegisterMod, mod, name, apiVersion)
-		if not registered then error(message, 2) end
+		api.OldRegisterMod(mod, name, apiVersion)
 		if type(mod) == "table" then mod.path = api.GetCurrentModPath() end
 	end
 	Isaac.RegisterMod = api.RegisterMod

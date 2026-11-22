@@ -1,30 +1,32 @@
 -- Opening and closing, room safety, frozen players, saving, and the game callbacks that drive the menu.
 local HINT_UPDATES, HINT_FADE = 120, 60
 local COMMANDS = { modconfigmenu = true, modconfig = true, mcm = true, mc = true }
--- Dead Sea Scrolls gamepad toggle: 1 either stick, 2 left only, 3 right only; 10 and 13 are the stick buttons.
-local DSS_INCLUDES = { [10] = { [1] = true, [2] = true }, [13] = { [1] = true, [3] = true } }
-local DSS_OTHER_STICK = { [10] = 3, [13] = 2 }
 local PAUSE_ACTIONS = { [ButtonAction.ACTION_PAUSE] = true, [ButtonAction.ACTION_MENUBACK] = true }
 
-return function(api, mod, input, nav, render)
+return function(api, util, mod, input, nav, render)
+	-- Dead Sea Scrolls gamepad toggle setting: 1 either stick, 2 left only, 3 right only.
+	local LEFT, RIGHT = Controller.STICK_LEFT, Controller.STICK_RIGHT
+	local DSS_INCLUDES = { [LEFT] = { [1] = true, [2] = true }, [RIGHT] = { [1] = true, [3] = true } }
+	local DSS_OTHER_STICK = { [LEFT] = 3, [RIGHT] = 2 }
 	api.IsVisible = false
 	api.ControlsEnabled = true
 	api.IgnoreActiveEnemies = { [EntityType.ENTITY_DUMMY] = { [-1] = true } } -- Potato Dummy
 	local frozen = {}
 	local hudWasVisible = true
 	local hintTimer, hintShown = 0, false
-
-	local function menuConfig() return api.Config["Mod Config Menu"] or {} end
+	local gameRunning = false -- a save before this game's load would write into the wrong save slot
+	local otherCopy = false
 
 	local function applyHud()
 		if not api.IsVisible then return end
-		Game():GetHUD():SetVisible(hudWasVisible and not menuConfig().HideHudInMenu)
+		Game():GetHUD():SetVisible(hudWasVisible and not api.Config[util.NAME].HideHudInMenu)
 	end
 
+	-- DSS's IsOpen returns its opened menu table, so any truthy value counts.
 	local function otherMenuOpen()
 		local dss = DeadSeaScrollsMenu
 		if AwaitingTextInput or CustomConsoleOpen then return true end
-		return dss ~= nil and dss.IsOpen ~= nil and dss.IsOpen() == true
+		return dss ~= nil and dss.IsOpen ~= nil and dss.IsOpen() and true or false
 	end
 
 	function api.GetIsPaused()
@@ -79,18 +81,6 @@ return function(api, mod, input, nav, render)
 		applyHud()
 	end
 
-	function api.CloseConfigMenu()
-		if not api.IsVisible then return end
-		api.IsVisible, api.ControlsEnabled = false, true
-		nav.reset()
-		Game():GetHUD():SetVisible(hudWasVisible)
-		releasePlayers()
-	end
-
-	function api.ToggleConfigMenu()
-		if api.IsVisible then api.CloseConfigMenu() else api.OpenConfigMenu() end
-	end
-
 	local function load()
 		if mod:HasData() then api.LoadSave(mod:LoadData()) end
 	end
@@ -98,20 +88,33 @@ return function(api, mod, input, nav, render)
 	local function save()
 		local ok, data = pcall(api.GetSave)
 		if ok then return mod:SaveData(data) end
-		Isaac.DebugString("[Config Menu] settings not saved: " .. tostring(data))
+		Isaac.DebugString("[" .. util.NAME .. "] settings not saved: " .. tostring(data))
+	end
+
+	function api.CloseConfigMenu()
+		if not api.IsVisible then return end
+		api.IsVisible, api.ControlsEnabled = false, true
+		nav.reset()
+		Game():GetHUD():SetVisible(hudWasVisible)
+		releasePlayers()
+		save()
+	end
+
+	function api.ToggleConfigMenu()
+		if api.IsVisible then api.CloseConfigMenu() else api.OpenConfigMenu() end
 	end
 
 	local function moveDssOffOurStick()
 		local dss = DeadSeaScrollsMenu
 		if not (dss and dss.GetGamepadToggleSetting and dss.SaveGamepadToggleSetting) then return end
-		local stick = menuConfig().OpenMenuController
+		local stick = api.Config[util.NAME].OpenMenuController
 		local includes = DSS_INCLUDES[stick]
 		if includes and includes[dss.GetGamepadToggleSetting()] then dss.SaveGamepadToggleSetting(DSS_OTHER_STICK[stick]) end
 	end
 
-	-- shortcut: whether blocking ACTION_PAUSE in onInputAction stops Esc pausing is unobserved on J510; if the game
-	-- still pauses right after the menu's own Back press, the menu waits out that pause instead of closing.
-	-- Drop pauseFromBack once an in-game run shows Esc no longer pauses while the menu is open.
+	-- shortcut: whether the engine's pause check passes through MC_INPUT_ACTION (so onInputAction can block it) is
+	-- unobserved on J510; if the game still pauses right after the menu's own Back press, the menu waits out that
+	-- pause instead of closing. Drop pauseFromBack once an in-game run shows Esc no longer pauses while the menu is open.
 	local renderCount, lastBackRender, pauseFromBack = 0, -10, false
 
 	local function keepThroughPause()
@@ -120,8 +123,7 @@ return function(api, mod, input, nav, render)
 		return pauseFromBack
 	end
 
-	local function onRender()
-		renderCount = renderCount + 1
+	local function stepMenu()
 		if keepThroughPause() then return end
 		pauseFromBack = false
 		local paused = api.GetIsPaused()
@@ -135,6 +137,18 @@ return function(api, mod, input, nav, render)
 		end
 		if api.IsVisible then return render.menu() end
 		if hintTimer > 0 then render.hint(math.min(1, hintTimer / HINT_FADE)) end
+	end
+
+	local function onRender()
+		renderCount = renderCount + 1
+		stepMenu()
+		render.warnings()
+		if otherCopy then render.notice() end
+	end
+
+	-- A copy loaded after this one takes over the globals.
+	local function checkOtherCopy()
+		if MCM ~= api or ModConfigMenu ~= api then otherCopy = true end
 	end
 
 	local function onUpdate()
@@ -161,18 +175,25 @@ return function(api, mod, input, nav, render)
 
 	local function onGameStarted(_, continued)
 		load()
+		gameRunning = true
 		nav.rerunWarning = false
 		moveDssOffOurStick()
+		checkOtherCopy()
 		if not hintShown then
 			hintShown = true
-			if menuConfig().ShowControls then hintTimer = HINT_UPDATES end
+			if api.Config[util.NAME].ShowControls then hintTimer = HINT_UPDATES end
 		end
 		if not continued then save() end
+	end
+
+	local function onNewLevel()
+		if gameRunning then save() end
 	end
 
 	local function onGameExit()
 		api.CloseConfigMenu()
 		save()
+		gameRunning = false
 	end
 
 	local function onCommand(_, command)
@@ -184,8 +205,13 @@ return function(api, mod, input, nav, render)
 	mod:AddCallback(ModCallbacks.MC_INPUT_ACTION, onInputAction)
 	mod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onGameStarted)
 	mod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, onGameExit)
-	mod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, save)
+	mod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, onNewLevel)
 	mod:AddCallback(ModCallbacks.MC_EXECUTE_CMD, onCommand)
 
-	return { applyHud = applyHud, load = load }
+	return {
+		applyHud = applyHud,
+		moveDssOffOurStick = moveDssOffOurStick,
+		load = load,
+		noticeOtherCopy = function() otherCopy = true end,
+	}
 end

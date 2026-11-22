@@ -24,7 +24,12 @@ local function browse(api, cat)
 	end
 	H.pressButton(Keyboard.KEY_L, -2)
 	H.render()
-	for _ = 2, id do tap(ButtonAction.ACTION_DOWN) end
+	-- Pages are listed alphabetically, so walk until this one is highlighted.
+	for _ = 1, #api.MenuData do
+		if api.CurrentCategory and api.CurrentCategory.Name == cat then break end
+		tap(ButtonAction.ACTION_DOWN)
+	end
+	eq(api.CurrentCategory.Name, cat, "reached the page")
 	tap(ButtonAction.ACTION_RIGHT)
 	for _, sub in ipairs(api.MenuData[id].Subcategories) do
 		tap(ButtonAction.ACTION_DOWN)

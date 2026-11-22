@@ -1,6 +1,16 @@
 -- Pure helpers shared by the modules; modconfig.lua publishes the public ones on the API table.
 local util = {}
 
+-- The mod's name, its page and its Config section; EID reads Config["Mod Config Menu"].HideHudInMenu.
+util.NAME = "Mod Config Menu"
+
+local warned = {}
+function util.warnOnce(key, message)
+	if warned[key] then return end
+	warned[key] = true
+	print("[" .. util.NAME .. "] " .. message)
+end
+
 function util.Round(n, places)
 	if not places or places == 0 then return math.floor(n + 0.5) end
 	local scale = 10 ^ places

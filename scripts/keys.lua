@@ -49,7 +49,7 @@ return function(api, util)
 			lines[#lines + 1] = 'Now bound to "' .. keys.keyName(kind, current) .. '".'
 			lines[#lines + 1] = ""
 		end
-		local back = isController(kind) and "BACK" or "ESCAPE"
+		local back = isController(kind) and "BACK" or (api.KeyboardToString[api.Config.LastBackPressed] or "ESCAPE")
 		lines[#lines + 1] = "Press " .. back .. " to " .. (setting.NoUnbind and "reset it to its default." or "clear it.")
 		return table.concat(lines, "$newline")
 	end

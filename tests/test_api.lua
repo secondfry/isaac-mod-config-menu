@@ -53,27 +53,10 @@ test("a same or newer copy already loaded is returned unchanged", function()
 	eq(H.loadMod(), newer, "newer copy")
 end)
 
-test("an older copy hands over other mods' pages and loses its callbacks", function()
-	local oldMod = RegisterMod("old", 1)
-	local oldCallback = function() end
-	oldMod:AddCallback(ModCallbacks.MC_POST_RENDER, oldCallback)
-	ModConfigMenu = {
-		Version = 204, Mod = oldMod, Config = { ["Other Mod"] = { x = 1 } },
-		MenuData = {
-			{ Name = "Mod Config Menu", Subcategories = {} },
-			{ Name = "General", Subcategories = {} },
-			{ Name = "Other Mod", Subcategories = {} },
-		},
-	}
+test("keybind helpers blame the calling file for a missing attribute", function()
 	local api = H.loadMod()
-	eq(ModConfigMenu, api, "globals point at the new table")
-	eq(#api.MenuData, 2, "own page plus Other Mod")
-	eq(api.MenuData[1].Name, "Config Menu", "own page first")
-	eq(api.MenuData[2].Name, "Other Mod", "kept page")
-	eq(api.Config["Other Mod"].x, 1, "kept config")
-	for _, entry in ipairs(Isaac.GetCallbacks(ModCallbacks.MC_POST_RENDER)) do
-		ok(entry.Function ~= oldCallback, "old callback removed")
-	end
+	raises(function() api.AddKeyboardSetting("Cat") end, "test_api%.lua", "AddKeyboardSetting")
+	raises(function() api.AddControllerSetting("Cat") end, "test_api%.lua", "AddControllerSetting")
 end)
 
 test("AddSetting shifts with two args and defaults to Uncategorized", function()

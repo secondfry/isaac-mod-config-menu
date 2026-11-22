@@ -99,7 +99,7 @@ return function(api, keys)
 		shiftSubcategory(a)
 		if type(a[4]) ~= "number" then shiftAt(a, 4) end
 		if type(a[6]) ~= "boolean" then shiftAt(a, 6) end
-		requireKeys(fnName, a, 4)
+		requireKeys(fnName, a, 3)
 		local cat, attr, text, showDevice = a[1], a[3], a[5], a[6]
 		local setting = register(cat, a[2], attr, a[4] or -1, {
 			Type = optionType, Info = a[7], Color = a[8],
@@ -114,13 +114,12 @@ return function(api, keys)
 		return setting
 	end
 
+	-- Tail calls: the caller's frame is replaced, so level 3 in requireKeys blames the dependent.
 	function api.AddKeyboardSetting(...)
-		local setting = addKeybind("AddKeyboardSetting", T.KEYBIND_KEYBOARD, ...)
-		return setting
+		return addKeybind("AddKeyboardSetting", T.KEYBIND_KEYBOARD, ...)
 	end
 
 	function api.AddControllerSetting(...)
-		local setting = addKeybind("AddControllerSetting", T.KEYBIND_CONTROLLER, ...)
-		return setting
+		return addKeybind("AddControllerSetting", T.KEYBIND_CONTROLLER, ...)
 	end
 end

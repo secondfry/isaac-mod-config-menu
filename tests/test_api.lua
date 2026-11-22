@@ -24,6 +24,29 @@ test("require returns the one table every global names", function()
 	eq(Controller.STICK_RIGHT, 13, "Controller enum")
 end)
 
+test("FilepathHelper.RegisterMod gives every later mod a string path", function()
+	local api = H.loadMod()
+	eq(Isaac.RegisterMod, api.RegisterMod, "Isaac.RegisterMod replaced")
+	ok(api.OldRegisterMod ~= api.RegisterMod, "OldRegisterMod is the engine's")
+	package.path = "C:/game/resources/scripts/?.lua;C:/game/mods/foo_1/?.lua"
+	-- Encyclopedia wraps Isaac.RegisterMod after us and concatenates ref.path for each new mod.
+	local engineLater = Isaac.RegisterMod
+	local seen
+	Isaac.RegisterMod = function(ref, name, v)
+		engineLater(ref, name, v)
+		seen = ref.path .. "content/gfx/ui_cardfronts.anm2"
+	end
+	local mod = RegisterMod("Later", 1)
+	eq(mod.path, "C:/game/mods/foo_1/", "root of the loading mod")
+	eq(seen, "C:/game/mods/foo_1/content/gfx/ui_cardfronts.anm2", "concatenation works")
+	eq(api.GetCurrentModPath(), "C:/game/mods/foo_1/", "GetCurrentModPath")
+	ok(api.KnownFilePathsByName["C:/game/mods/foo_1/"], "path recorded")
+	package.path, package.cpath = "C:/only/?.lua", ""
+	eq(RegisterMod("NoRoot", 1).path, "", "no derivable root: empty string")
+	api.OldRegisterMod = function() error("boom") end
+	raises(function() api.RegisterMod({}, "Bad", 1) end, "boom", "engine error rethrown")
+end)
+
 test("a same or newer copy already loaded is returned unchanged", function()
 	local newer = { Version = 300, MenuData = {} }
 	MCM = newer

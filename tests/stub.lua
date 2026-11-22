@@ -69,7 +69,12 @@ Input = {
 	IsButtonPressed = function(b, i) return H.pressed[key(b, i)] == true end,
 	IsButtonTriggered = function(b, i) return H.triggered[key(b, i)] == true end,
 	IsActionPressed = function(a, i) return H.actionsPressed[key(a, i)] == true end,
-	IsActionTriggered = function(a, i) return H.actionsTriggered[key(a, i)] == true end,
+	IsActionTriggered = function(a, i)
+		-- With H.hookActions, entity-less reads pass through MC_INPUT_ACTION as the engine may do (unobserved).
+		local hooked = H.hookActions and H.fire(ModCallbacks.MC_INPUT_ACTION, nil, InputHook.IS_ACTION_TRIGGERED, a)
+		if hooked ~= nil then return hooked end
+		return H.actionsTriggered[key(a, i)] == true
+	end,
 }
 
 -- Presses for one frame: a raw button/key, or an action, on one controller index.

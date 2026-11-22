@@ -99,6 +99,48 @@ test("while open players freeze, entity input reads false and the HUD hides", fu
 	eq(H.hudVisible, true, "HUD restored")
 end)
 
+test("Esc is Back while open: pause reads are blocked, the menu's own reads pass", function()
+	local api = open()
+	H.hookActions = true
+	api.AddSetting("Esc", { Type = 4, Display = "e", CurrentSetting = true })
+	show(api)
+	eq(H.fire(ModCallbacks.MC_INPUT_ACTION, nil, InputHook.IS_ACTION_TRIGGERED, A.ACTION_PAUSE), false, "pause blocked")
+	eq(H.fire(ModCallbacks.MC_INPUT_ACTION, nil, InputHook.IS_ACTION_PRESSED, A.ACTION_MENUBACK), false, "menu back blocked")
+	eq(H.fire(ModCallbacks.MC_INPUT_ACTION, nil, InputHook.GET_ACTION_VALUE, A.ACTION_PAUSE), 0, "pause value 0")
+	eq(H.fire(ModCallbacks.MC_INPUT_ACTION, nil, InputHook.IS_ACTION_TRIGGERED, A.ACTION_FULLSCREEN), nil, "fullscreen untouched")
+	tap(DOWN)
+	tap(RIGHT)
+	eq(api.GetCurrentFocus().option, 1, "in the rows")
+	tap(BACK)
+	eq(api.GetCurrentFocus().option, nil, "Esc (menu back) still reaches the menu")
+	ok(api.IsVisible, "still open")
+	api.CloseConfigMenu()
+	eq(H.fire(ModCallbacks.MC_INPUT_ACTION, nil, InputHook.IS_ACTION_TRIGGERED, A.ACTION_PAUSE), nil, "closed: pause passes")
+end)
+
+test("a pause caused by the menu's own Back press does not close it", function()
+	local api = open()
+	api.AddSetting("Esc", { Type = 4, Display = "e", CurrentSetting = true })
+	show(api)
+	tap(DOWN)
+	tap(RIGHT)
+	H.pressAction(A.ACTION_MENUBACK, -2)
+	H.render()
+	H.paused = true
+	H.render()
+	H.render()
+	ok(api.IsVisible, "kept open while that pause lasts")
+	H.paused = false
+	H.render()
+	ok(api.IsVisible, "still open after unpausing")
+	tap(UP)
+	eq(api.GetCurrentFocus().category, 1, "and responsive")
+	for _ = 1, 5 do H.render() end
+	H.paused = true
+	H.render()
+	eq(api.IsVisible, false, "an unrelated pause still closes it")
+end)
+
 test("category list wraps; rows skip SPACE, NoCursorHere, unknown types and Display-less rows", function()
 	local api = open()
 	local a, b = value(false), value(false)

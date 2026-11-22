@@ -13,6 +13,8 @@ Press **L** (keyboard) or click the **right stick** (gamepad) in a cleared room 
 The metadata name starts with a space so the game loads it before the mods that look for the menu at their own load.
 
 - Globals `MCM` and `ModConfigMenu` hold one API table; `ScreenHelper`, `InputHelper` and `FilepathHelper` point at the same table, and `require("scripts.modconfig")` returns it. `ModConfigMenuData` is `MenuData`. Deprecated `ModConfigMenuController`, `ModConfigMenuKeyboardToString`, `ModConfigMenuControllerToString`, `ModConfigMenuPopupGfx` and `ModConfigMenuOptionType` still forward, with a notice. `Controller` is created when absent.
+- As `FilepathHelper` it replaces `Isaac.RegisterMod` (the engine's stays as `OldRegisterMod`) so every mod registered after it gets a string `path` with its root folder, which Encyclopedia relies on; `Version` keeps Encyclopedia's own copy from installing.
+- While the menu is open, Esc and the pause button act as Back: the game's pause checks read false.
 - `OptionType` (TEXT 1, SPACE 2, SCROLL 3, BOOLEAN 4, NUMBER 5, KEYBIND_KEYBOARD 6, KEYBIND_CONTROLLER 7, TITLE 8) and `PopupGfx` (THIN/WIDE x SMALL/MEDIUM/LARGE).
 - Data: `GetCategoryIDByName`, `UpdateCategory`, `SetCategoryInfo`, `RemoveCategory`, `GetSubcategoryIDByName`, `UpdateSubcategory`, `RemoveSubcategory`, `AddSetting`, `AddText`, `AddTitle`, `AddSpace`, `RemoveSetting`; `MenuData` may also be written directly.
 - Helper settings stored in `Config` and saved by the menu: `AddBooleanSetting`, `AddNumberSetting`, `AddScrollSetting`, `AddKeyboardSetting`, `AddControllerSetting`, with the original's optional-argument shifting.

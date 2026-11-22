@@ -123,9 +123,12 @@ return function(api)
 	end
 
 	-- One frame of menu input: OR over every index, so a press seen on two indexes still counts once.
+	-- input.reading lets the MC_INPUT_ACTION block in menu.lua pass the menu's own action reads.
 	function input.readMenu()
 		local frame = { pressed = {} }
+		input.reading = true
 		for _, i in ipairs(INDEXES) do readIndex(i, frame) end
+		input.reading = false
 		for dir in pairs(held) do
 			held[dir] = frame.pressed[dir] and held[dir] + 1 or 0
 			local n = held[dir]

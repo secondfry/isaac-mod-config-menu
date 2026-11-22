@@ -29,14 +29,45 @@ return function(api)
 		end,
 	})
 
-	-- The FilepathHelper surface; Version on this table keeps Encyclopedia's bundled copy from installing itself.
+	-- The FilepathHelper surface; Version on this table keeps Encyclopedia's bundled copy from installing itself,
+	-- so this table owes its contract: every mod registered later carries a string `path` (Encyclopedia concatenates it).
 	api.KnownFilePathsByName = {}
 	api.KnownFilePathsByIndex = {}
-	function api.GetCurrentModPath() return api.KnownFilePathsByIndex[1] end
+
+	-- require("") fails listing each search pattern as "no file '<pattern>'"; the second is the loading mod's root.
+	-- shortcut: the second-entry rule is taken from FilepathHelper's in-game behaviour, not observed here; with no such entry
+	-- the path is "" so concatenation stays safe; probe package.path in game if a mod reports a wrong path.
+	local function loadingModPath()
+		local _, message = pcall(require, "")
+		local found = 0
+		for pattern in tostring(message):gmatch("no file '([^']*)'") do
+			found = found + 1
+			if found == 2 then return (pattern:gsub("\\", "/"):gsub("%.lua$", "")) end
+		end
+		return ""
+	end
+
+	function api.GetCurrentModPath()
+		local path = loadingModPath()
+		if path ~= "" and not api.KnownFilePathsByName[path] then
+			api.KnownFilePathsByName[path] = true
+			api.KnownFilePathsByIndex[#api.KnownFilePathsByIndex + 1] = path
+		end
+		return path
+	end
+
 	function api.DoFile(path) return include(path) end
 	local function no() return false end
 	api.TestPath, api.IsFile, api.IsDirectory, api.IsAnm2 = no, no, no, no
-	api.RegisterMod, api.OldRegisterMod = Isaac.RegisterMod, Isaac.RegisterMod
+
+	api.OldRegisterMod = Isaac.RegisterMod
+	function api.RegisterMod(mod, name, apiVersion)
+		local registered, message = pcall(api.OldRegisterMod, mod, name, apiVersion)
+		if not registered then error(message, 2) end
+		if type(mod) == "table" then mod.path = api.GetCurrentModPath() end
+	end
+	Isaac.RegisterMod = api.RegisterMod
+	api.Mod.path = api.GetCurrentModPath()
 	if dofile == nil then dofile = api.DoFile end
 
 	ScreenHelper, InputHelper, FilepathHelper = api, api, api

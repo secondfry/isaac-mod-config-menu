@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <name> Config Menu</name>
+    <directory>config menu</directory>
+    <description>Provides the Mod Config Menu API (ModConfigMenu / MCM) that other mods use for their settings pages, for Repentance+ without REPENTOGON. Do not run it alongside Mod Config Menu Impure or Mod Config Menu Pure: enable only one of them.</description>
+    <version>1.0</version>
+    <visibility>Public</visibility>
+    <tag id="Lua"/>
+    <tag id="Tweaks"/>
+</metadata>

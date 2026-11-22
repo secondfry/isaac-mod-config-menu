@@ -7,7 +7,7 @@ return function(api)
 	local function loadingModPath()
 		local _, message = pcall(require, "")
 		local found = 0
-		for pattern in tostring(message):gmatch("no file '(.-)%.lua'") do
+		for pattern in tostring(message):gmatch("no file '([^\n]-)%.lua'") do
 			found = found + 1
 			if found == 2 then return (pattern:gsub("\\", "/")) end
 		end

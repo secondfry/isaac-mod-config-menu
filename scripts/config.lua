@@ -4,19 +4,19 @@ local json = require("json")
 -- Old dependents read these at the top level; they live in Config.General.
 local GENERAL_KEYS = { HudOffset = true, Overlays = true, ChargeBars = true, BigBooks = true }
 
--- Writes src over dst, recursing into tables both have.
-local function mergeOver(dst, src, copy)
-	for k, v in pairs(src) do
-		if type(v) == "table" and type(dst[k]) == "table" then
-			mergeOver(dst[k], v, copy)
-		else
-			dst[k] = copy(v)
-		end
-	end
-	return dst
-end
-
 return function(api, util)
+	-- Writes src over dst, recursing into tables both have.
+	local function mergeOver(dst, src)
+		for k, v in pairs(src) do
+			if type(v) == "table" and type(dst[k]) == "table" then
+				mergeOver(dst[k], v)
+			else
+				dst[k] = util.CopyTable(v)
+			end
+		end
+		return dst
+	end
+
 	local function deprecated(key)
 		util.deprecated("Config." .. key, "Config.General." .. key)
 	end
@@ -66,7 +66,7 @@ return function(api, util)
 			saved = ok and decoded or nil
 		end
 		if type(saved) ~= "table" then return nil end
-		local merged = mergeOver(util.CopyTable(api.ConfigDefault), saved, util.CopyTable)
+		local merged = mergeOver(util.CopyTable(api.ConfigDefault), saved)
 		util.FillTable(merged, api.Config)
 		merged.General = generalMirror()
 		api.Config = setmetatable(merged, redirect)

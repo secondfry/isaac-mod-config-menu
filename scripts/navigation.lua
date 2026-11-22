@@ -27,7 +27,7 @@ return function(api, util, keys)
 	-- A category holding only "Uncategorized" opens straight into its rows.
 	function nav.hasTabBar()
 		local subs = nav.subcategories()
-		return #subs > 1 or (#subs == 1 and subs[1].Name ~= "Uncategorized")
+		return #subs > 1 or (#subs == 1 and subs[1].Name ~= util.UNCATEGORIZED)
 	end
 
 	function nav.options()
@@ -118,11 +118,18 @@ return function(api, util, keys)
 		if opt.Restart then nav.restartWarning, nav.popup = true, { kind = "warning", option = opt, text = RESTART_POPUP } end
 	end
 
+	-- A row already at its default (or without one) is left alone: no OnChange, no sound.
+	local function resetToDefault(opt)
+		local default = util.Resolve(opt.Default)
+		if default == nil or default == valueOf(opt) then return end
+		change(opt, default)
+	end
+
 	local function stepNumber(opt, dir)
 		local scroll = opt.Type == T.SCROLL
 		local min, max = opt.Minimum, opt.Maximum
 		local by = opt.ModifyBy or 1
-		if scroll then min, max, by = 0, 10, 1 end
+		if scroll then min, max, by = 0, util.SCROLL_MAX, 1 end
 		local value = (tonumber(valueOf(opt)) or min or 0) + by * dir
 		value = by % 1 == 0 and math.floor(value) or util.Round(value, 3)
 		local clamp = scroll or opt.NoLoopFromMaxMin
@@ -169,8 +176,8 @@ return function(api, util, keys)
 		if frame.up or frame.down then
 			local dir = frame.down and 1 or -1
 			nav.opt = findSelectable(nav.opt + dir, dir) or nav.opt
-		elseif frame.reset and EDITABLE[kind] and opt.Default ~= nil then
-			change(opt, util.Resolve(opt.Default))
+		elseif frame.reset and EDITABLE[kind] then
+			resetToDefault(opt)
 		elseif kind == T.BOOLEAN then
 			if frame.left or frame.right or frame.select then change(opt, not valueOf(opt)) end
 		elseif kind == T.NUMBER or kind == T.SCROLL then
@@ -198,7 +205,7 @@ return function(api, util, keys)
 	local function bindInput(frame, opt, capture)
 		if frame.reset and not opt.CapturesResetKey then
 			nav.popup = nil
-			if opt.Default ~= nil then change(opt, util.Resolve(opt.Default)) end
+			resetToDefault(opt)
 		elseif frame.back or frame.left then
 			nav.popup = nil
 			change(opt, unbound(opt))

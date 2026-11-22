@@ -1,6 +1,5 @@
 -- The API entry: main.lua and dependents require("scripts.modconfig") and all get this one table.
--- The original reports 204; a copy already loaded with the same or a higher Version is used instead of this one.
-local VERSION = 205
+local VERSION = 205 -- the original reports 204; a copy already loaded with the same or a higher Version is used instead
 
 local existing = (type(MCM) == "table" and MCM) or (type(ModConfigMenu) == "table" and ModConfigMenu) or nil
 if existing and (tonumber(existing.Version) or 0) >= VERSION then return existing end
@@ -23,7 +22,7 @@ local api = {
 }
 function api.GetVersionString() return "1.0" end
 
-include("scripts.registry")(api)
+include("scripts.registry")(api, util)
 local keys = include("scripts.keys")(api, util)
 include("scripts.screen")(api, util)
 include("scripts.config")(api, util)
@@ -33,9 +32,10 @@ local nav = include("scripts.navigation")(api, util, keys)
 local render = include("scripts.render")(api, util, nav)
 local menu = include("scripts.menu")(api, util, mod, input, nav, render)
 include("scripts.builtin")(api, util, menu)
+include("scripts.filepath")(api)
 include("scripts.compat")(api, util)
 -- An older copy loaded first keeps running beside this one; the player is told to keep only one.
 if existing then menu.noticeOtherCopy() end
 menu.load()
-MCM, ModConfigMenu = api, api
+MCM, ModConfigMenu, ScreenHelper, InputHelper, FilepathHelper, ModConfigMenuData = api, api, api, api, api, api.MenuData
 return api

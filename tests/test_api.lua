@@ -41,6 +41,8 @@ test("FilepathHelper.RegisterMod gives every later mod a string path", function(
 	eq(seen, "C:/game/mods/foo_1/content/gfx/ui_cardfronts.anm2", "concatenation works")
 	eq(api.GetCurrentModPath(), "C:/game/mods/foo_1/", "GetCurrentModPath")
 	ok(api.KnownFilePathsByName["C:/game/mods/foo_1/"], "path recorded")
+	package.path = "C:/game/resources/scripts/?.lua;C:/game/mods/shotty's pack_2/?.lua"
+	eq(RegisterMod("Apostrophe", 1).path, "C:/game/mods/shotty's pack_2/", "a folder name with an apostrophe")
 	package.path, package.cpath = "C:/only/?.lua", ""
 	eq(RegisterMod("NoRoot", 1).path, "", "no derivable root: empty string")
 	api.OldRegisterMod = function() error("boom") end

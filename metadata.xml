@@ -2,9 +2,23 @@
 <metadata>
     <name> Mod Config Menu</name>
     <directory>config menu</directory>
-    <description>Provides the Mod Config Menu API (ModConfigMenu / MCM) that other mods use for their settings pages, for Repentance+ without REPENTOGON. Do not run it alongside Mod Config Menu Impure or Mod Config Menu Pure: enable only one of them.</description>
+    <description>A settings menu for other mods. It provides the Mod Config Menu API (the ModConfigMenu and MCM globals) that mods such as External Item Descriptions, MinimapAPI, Stats+ and Completion Marks use for their settings pages. Those mods work with it unchanged.
+
+Made for Repentance+ v1.9.7.19 without REPENTOGON (not tested with REPENTOGON). Works with that version's new keyboard input.
+
+[b]Enable only one Mod Config Menu mod.[/b] Do not run this alongside Mod Config Menu Impure or Mod Config Menu Pure.
+
+[h1]Using it[/h1]
+- Press [b]L[/b] (keyboard) or click the [b]right stick[/b] (controller) in a cleared room to open it.
+- Arrows, WASD or either stick move; Enter, Space or E select; Esc, Q, Tab or Backspace go back, and close the menu from the list of mods. Inside the menu, Esc goes back without pausing the game.
+- R restores the highlighted setting's default.
+- The menu's own page sets the open key and button, hiding the HUD while open, the reset key, the control hints, and whether mods are listed by name (default) or in load order.
+- If a Dead Sea Scrolls menu (from Encyclopedia or MinimapAPI) opens on the same stick, its toggle is moved to the other stick.
+- Settings are saved per save slot. Nothing is imported from another Mod Config Menu mod: options kept in that menu's own save start from their defaults, and mods that save their own settings, such as EID, keep them.
+
+[h1]Credits and licence[/h1]
+The Mod Config Menu API was designed by piber20 for the original Mod Config Menu. This is an independent rewrite, written from a description of the original's behaviour without its code, and with its own art. Not affiliated with the original or its forks. MIT licence. Source: https://github.com/secondfry/isaac-mod-config-menu</description>
     <version>1.0</version>
-    <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Tweaks"/>
 </metadata>

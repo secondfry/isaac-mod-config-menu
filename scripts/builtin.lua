@@ -15,7 +15,7 @@ return function(api, util, menu)
 	end
 
 	api.UpdateCategory(PAGE, { Info = "Settings of this menu." })
-	api.AddTitle(PAGE, PAGE .. " " .. api.GetVersionString())
+	api.AddTitle(PAGE, PAGE) -- no version: ModUploader bumps metadata's <version> on each upload
 	api.AddSpace(PAGE)
 
 	local openKey = api.AddKeyboardSetting(PAGE, "OpenMenuKeyboard", Keyboard.KEY_L, "Open menu", true,

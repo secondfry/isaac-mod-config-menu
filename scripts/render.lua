@@ -1,7 +1,6 @@
--- Draws the open menu, the first-run hint, the warning lines and the other-copy notice.
--- Layout numbers are approximate by design.
+-- Draws the open menu, the first-run hint, the warning lines and the other-copy notice; layout numbers are approximate.
 local ANM2 = "gfx/configmenu/menu.anm2"
-local FONT = "font/cjk/lanapixel.fnt" -- covers every game language
+local FONT = "font/cjk/lanapixel.fnt" -- the game's CJK font, for all text (user's choice)
 local POPUP_LAYER = 1
 local PANEL_W, PANEL_H = 400, 228
 local LIST_TOP = 32
@@ -13,6 +12,9 @@ local SLIDER_W = 56
 local PAPER_W, PAPER_H, PAPER_MARGIN = 80, 16, 4
 local POPUP_W, POPUP_LINE = 180, 10
 local INK = { 1, 0.8, 0.2 } -- orange-yellow, shared by all menu text and the open hint (user's choice)
+local OLD_RGB = { 0.75, 0.1, 0.1 }
+local WARNING_RGB = { 0.9, 0.15, 0.15 }
+local NOTICE_RGB = { 1, 0.5, 0.5 }
 local RESTART_LINE = "Restart the game to apply some changes"
 local RERUN_LINE = "Start a new run to apply some changes"
 local NOTICE_X, NOTICE_Y, NOTICE_LINE = 70, 30, 10 -- placed like MinimapAPI's own warnings
@@ -20,6 +22,24 @@ local NOTICE_LINES = {
 	"More than one Mod Config Menu mod is enabled.",
 	"Only one Mod Config Menu mod should be enabled at a time.",
 }
+
+local function wrapLines(lines, width, measure)
+	local wrapped = {}
+	for _, line in ipairs(lines) do
+		local current = ""
+		for word in line:gmatch("%S+") do
+			local candidate = current == "" and word or current .. " " .. word
+			if current ~= "" and measure(candidate) > width then
+				wrapped[#wrapped + 1] = current
+				current = word
+			else
+				current = candidate
+			end
+		end
+		wrapped[#wrapped + 1] = current
+	end
+	return wrapped
+end
 
 return function(api, util, nav)
 	local T = api.OptionType
@@ -109,7 +129,7 @@ return function(api, util, nav)
 	end
 
 	local function drawSliderLine(opt, before, value, after, x, y, color)
-		local frame = util.Clamp(math.floor(tonumber(value) or 0), 0, 10)
+		local frame = util.Clamp(math.floor(tonumber(value) or 0), 0, util.SCROLL_MAX)
 		local wb, wa = textWidth(before), textWidth(after)
 		local startX = x + (OPT_W - (wb + SLIDER_W + wa)) / 2
 		text(before, startX, y, color)
@@ -174,8 +194,8 @@ return function(api, util, nav)
 		local info, isOld = infoSource()
 		if info == nil then return end
 		local width = controlsShown() and INFO_W or INFO_W_WIDE
-		local lines = util.WrapLines(util.ConvertDisplayToTextTable(info), width, textWidth)
-		local color = isOld and KColor(0.75, 0.1, 0.1, 1) or ink(1)
+		local lines = wrapLines(util.ConvertDisplayToTextTable(info), width, textWidth)
+		local color = ink(1, isOld and OLD_RGB or nil)
 		for i = 1, math.min(#lines, INFO_LINES) do
 			text(lines[i], ox + (PANEL_W - width) / 2, oy + INFO_TOP + (i - 1) * INFO_LINE, color, width)
 		end
@@ -217,7 +237,7 @@ return function(api, util, nav)
 		end
 		popupSprite:Render(Vector(w / 2, h / 2))
 		local width = opt and opt.PopupWidth or POPUP_W
-		local lines = util.WrapLines(util.ConvertDisplayToTextTable(nav.popupText()), width, textWidth)
+		local lines = wrapLines(util.ConvertDisplayToTextTable(nav.popupText()), width, textWidth)
 		local top = h / 2 - #lines * POPUP_LINE / 2
 		for i, line in ipairs(lines) do
 			text(line, w / 2 - width / 2, top + (i - 1) * POPUP_LINE, ink(1), width)
@@ -251,13 +271,13 @@ return function(api, util, nav)
 		if nav.restartWarning then lines[#lines + 1] = RESTART_LINE end
 		if nav.rerunWarning then lines[#lines + 1] = RERUN_LINE end
 		for i, line in ipairs(lines) do
-			text(line, 0, h - api.WarningOffset - (i - 1) * 10, KColor(0.9, 0.15, 0.15, 1), w)
+			text(line, 0, h - api.WarningOffset - (i - 1) * 10, ink(1, WARNING_RGB), w)
 		end
 	end
 
 	function render.notice()
 		for i, line in ipairs(NOTICE_LINES) do
-			text(line, NOTICE_X, NOTICE_Y + (i - 1) * NOTICE_LINE, KColor(1, 0.5, 0.5, 1))
+			text(line, NOTICE_X, NOTICE_Y + (i - 1) * NOTICE_LINE, ink(1, NOTICE_RGB))
 		end
 	end
 

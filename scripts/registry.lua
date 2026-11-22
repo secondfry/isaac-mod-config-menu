@@ -1,8 +1,8 @@
 -- Menu data model: categories, their subcategories and the rows dependents add to them.
-local UNCATEGORIZED = "Uncategorized"
 local GFX = "gfx/configmenu/"
 
-return function(api)
+return function(api, util)
+	local UNCATEGORIZED = util.UNCATEGORIZED
 	api.OptionType = {
 		TEXT = 1, SPACE = 2, SCROLL = 3, BOOLEAN = 4, NUMBER = 5,
 		KEYBIND_KEYBOARD = 6, KEYBIND_CONTROLLER = 7, TITLE = 8,

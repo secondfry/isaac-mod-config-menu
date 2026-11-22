@@ -179,27 +179,17 @@ test("Esc is Back while open: pause reads are blocked, the menu's own reads pass
 	eq(H.fire(ModCallbacks.MC_INPUT_ACTION, nil, InputHook.IS_ACTION_TRIGGERED, A.ACTION_PAUSE), nil, "closed: pause passes")
 end)
 
-test("a pause caused by the menu's own Back press does not close it", function()
+test("a dependent's failing Display does not stop later mods' render callbacks", function()
 	local api = open()
-	api.AddSetting("Esc", { Type = 4, Display = "e", CurrentSetting = true })
+	api.AddSetting("Broken", { Type = 4, CurrentSetting = true, Display = function() error("broken display") end })
+	local laterRan = false
+	Isaac.AddCallback({}, ModCallbacks.MC_POST_RENDER, function() laterRan = true end)
 	show(api)
 	tap(DOWN)
-	tap(RIGHT)
-	H.pressAction(A.ACTION_MENUBACK, -2)
+	laterRan = false
 	H.render()
-	H.paused = true
-	H.render()
-	H.render()
-	ok(api.IsVisible, "kept open while that pause lasts")
-	H.paused = false
-	H.render()
-	ok(api.IsVisible, "still open after unpausing")
-	tap(UP)
-	eq(api.GetCurrentFocus().category, 1, "and responsive")
-	for _ = 1, 5 do H.render() end
-	H.paused = true
-	H.render()
-	eq(api.IsVisible, false, "an unrelated pause still closes it")
+	ok(laterRan, "a later-registered MC_POST_RENDER callback still runs")
+	ok(api.IsVisible, "menu still open")
 end)
 
 test("category list wraps; rows skip SPACE, NoCursorHere, unknown types and Display-less rows", function()
@@ -269,6 +259,9 @@ test("BOOLEAN toggles on Left, Right and Select; Reset restores Default; changes
 	tap(key(Keyboard.KEY_R))
 	eq(box.v, true, "reset key restores Default")
 	eq(H.sounds[#H.sounds].id, SoundEffect.SOUND_PLOP, "plop")
+	local changes = #box.changes
+	tap(key(Keyboard.KEY_R))
+	eq(#box.changes, changes, "a row already at its default gets no OnChange")
 end)
 
 test("NUMBER wraps or clamps and rounds; SCROLL clamps at 0-10", function()
@@ -470,6 +463,14 @@ test("game start loads, a new run saves, exit saves", function()
 	api.Config["Mod Config Menu"].ShowControls = true
 	H.fire(ModCallbacks.MC_PRE_GAME_EXIT, true)
 	ok(H.modData:find('"ShowControls":true'), "exit saved")
+end)
+
+test("a game on a slot with no save starts from the defaults", function()
+	local api = open()
+	api.Config["Mod Config Menu"].ShowControls = false
+	H.modData = nil
+	H.fire(ModCallbacks.MC_POST_GAME_STARTED, false)
+	eq(api.Config["Mod Config Menu"].ShowControls, true, "back at default")
 end)
 
 test("first game start shows the open-key hint", function()

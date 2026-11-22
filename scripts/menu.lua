@@ -81,8 +81,9 @@ return function(api, util, mod, input, nav, render)
 		applyHud()
 	end
 
+	-- A slot without a save still loads "{}", so the previous slot's values do not carry over.
 	local function load()
-		if mod:HasData() then api.LoadSave(mod:LoadData()) end
+		api.LoadSave(mod:HasData() and mod:LoadData() or "{}")
 	end
 
 	local function save()
@@ -112,41 +113,31 @@ return function(api, util, mod, input, nav, render)
 		if includes and includes[dss.GetGamepadToggleSetting()] then dss.SaveGamepadToggleSetting(DSS_OTHER_STICK[stick]) end
 	end
 
-	-- shortcut: whether the engine's pause check passes through MC_INPUT_ACTION (so onInputAction can block it) is
-	-- unobserved on J510; if the game still pauses right after the menu's own Back press, the menu waits out that
-	-- pause instead of closing. Drop pauseFromBack once an in-game run shows Esc no longer pauses while the menu is open.
-	local renderCount, lastBackRender, pauseFromBack = 0, -10, false
-
-	local function keepThroughPause()
-		if not api.IsVisible or not Game():IsPaused() or otherMenuOpen() then return false end
-		pauseFromBack = pauseFromBack or renderCount - lastBackRender <= 2
-		return pauseFromBack
+	-- Render callbacks run unprotected and ours runs first, so a dependent's failing Display/Info/Popup would skip every later MC_POST_RENDER.
+	local function drawMenu()
+		local ok, err = pcall(render.menu)
+		if not ok then util.warnOnce(tostring(err), "menu not drawn: " .. tostring(err)) end
 	end
 
 	local function stepMenu()
-		if keepThroughPause() then return end
-		pauseFromBack = false
 		local paused = api.GetIsPaused()
 		if paused then api.CloseConfigMenu() end
 		if not paused and not nav.popup and input.togglePressed() then
 			api.ToggleConfigMenu()
-		elseif api.IsVisible then
-			local frame = input.readMenu()
-			if frame.back then lastBackRender = renderCount end
-			if nav.step(frame, input.capture) == "close" then api.CloseConfigMenu() end
+		elseif api.IsVisible and nav.step(input.readMenu(), input.capture) == "close" then
+			api.CloseConfigMenu()
 		end
-		if api.IsVisible then return render.menu() end
+		if api.IsVisible then return drawMenu() end
 		if hintTimer > 0 then render.hint(math.min(1, hintTimer / HINT_FADE)) end
 	end
 
 	local function onRender()
-		renderCount = renderCount + 1
 		stepMenu()
 		render.warnings()
 		if otherCopy then render.notice() end
 	end
 
-	-- A copy loaded after this one takes over the globals.
+	-- Catches only a later copy that reassigns the globals; one that requires scripts.modconfig gets this table.
 	local function checkOtherCopy()
 		if MCM ~= api or ModConfigMenu ~= api then otherCopy = true end
 	end
@@ -161,8 +152,7 @@ return function(api, util, mod, input, nav, render)
 		freezePlayers()
 	end
 
-	-- Blocks entity-bound reads, plus the entity-less pause checks so Esc acts as Back instead of pausing;
-	-- the menu's own reads pass while input.reading is set.
+	-- Blocks entity reads and the entity-less pause checks (so Esc is Back, not pause); the menu's own reads pass via input.reading.
 	local function onInputAction(_, entity, hook, action)
 		local forced = input.forcedValue(entity, hook, action)
 		if forced ~= nil then return forced end

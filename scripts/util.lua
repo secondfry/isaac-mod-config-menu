@@ -1,14 +1,22 @@
--- Pure helpers shared by the modules; modconfig.lua publishes the public ones on the API table.
+-- Helpers and the mod's name shared by the modules; modconfig.lua publishes the public ones.
 local util = {}
 
 -- The mod's name, its page and its Config section; EID reads Config["Mod Config Menu"].HideHudInMenu.
 util.NAME = "Mod Config Menu"
+util.UNCATEGORIZED = "Uncategorized" -- the default subcategory; a category with only this one has no tab bar
+util.SCROLL_MAX = 10 -- SCROLL rows run 0 to this
 
 local warned = {}
 function util.warnOnce(key, message)
 	if warned[key] then return end
 	warned[key] = true
-	print("[" .. util.NAME .. "] " .. message)
+	local line = "[" .. util.NAME .. "] " .. message
+	print(line)
+	Isaac.DebugString(line)
+end
+
+function util.deprecated(name, replacement)
+	util.warnOnce(name, name .. " is deprecated, use " .. replacement)
 end
 
 function util.Round(n, places)
@@ -44,18 +52,6 @@ function util.FillTable(dst, src)
 	return dst
 end
 
--- Writes src over dst, recursing into tables both have.
-function util.MergeOver(dst, src)
-	for k, v in pairs(src) do
-		if type(v) == "table" and type(dst[k]) == "table" then
-			util.MergeOver(dst[k], v)
-		else
-			dst[k] = util.CopyTable(v)
-		end
-	end
-	return dst
-end
-
 function util.Resolve(value, ...)
 	if type(value) == "function" then return value(...) end
 	return value
@@ -71,24 +67,6 @@ function util.ConvertDisplayToTextTable(display, ...)
 		for line in (text .. "$newline"):gmatch("(.-)%$newline") do lines[#lines + 1] = line end
 	end
 	return lines
-end
-
-function util.WrapLines(lines, width, measure)
-	local wrapped = {}
-	for _, line in ipairs(lines) do
-		local current = ""
-		for word in line:gmatch("%S+") do
-			local candidate = current == "" and word or current .. " " .. word
-			if current ~= "" and measure(candidate) > width then
-				wrapped[#wrapped + 1] = current
-				current = word
-			else
-				current = candidate
-			end
-		end
-		wrapped[#wrapped + 1] = current
-	end
-	return wrapped
 end
 
 return util

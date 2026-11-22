@@ -11,14 +11,13 @@ return function(api, util)
 	end
 
 	function api.GetOffset()
-		if Options then return util.Clamp(math.floor(Options.HUDOffset * 10 + 0.5), 0, 10) end
-		return api.Config.General.HudOffset or 0
+		return util.Clamp(math.floor(Options.HUDOffset * 10 + 0.5), 0, 10)
 	end
 
 	function api.SetOffset(n)
 		n = util.Clamp(util.Round(n), 0, 10)
 		api.Config.General.HudOffset = n
-		if Options then Options.HUDOffset = n / 10 end
+		Options.HUDOffset = n / 10
 	end
 
 	local function inward(x, y, dirX, dirY, offset)

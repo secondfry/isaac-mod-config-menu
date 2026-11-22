@@ -4,28 +4,39 @@ local json = require("json")
 -- Old dependents read these at the top level; they live in Config.General.
 local GENERAL_KEYS = { HudOffset = true, Overlays = true, ChargeBars = true, BigBooks = true }
 
+-- Writes src over dst, recursing into tables both have.
+local function mergeOver(dst, src, copy)
+	for k, v in pairs(src) do
+		if type(v) == "table" and type(dst[k]) == "table" then
+			mergeOver(dst[k], v, copy)
+		else
+			dst[k] = copy(v)
+		end
+	end
+	return dst
+end
+
 return function(api, util)
-	local function warnOnce(key)
-		util.warnOnce("Config." .. key, "Config." .. key .. " is deprecated, use Config.General." .. key)
+	local function deprecated(key)
+		util.deprecated("Config." .. key, "Config.General." .. key)
 	end
 
 	local redirect = {
 		__index = function(t, key)
 			if not GENERAL_KEYS[key] then return nil end
-			warnOnce(key)
+			deprecated(key)
 			local general = rawget(t, "General")
 			return general and general[key]
 		end,
 		__newindex = function(t, key, value)
 			if not GENERAL_KEYS[key] then return rawset(t, key, value) end
-			warnOnce(key)
+			deprecated(key)
 			rawget(t, "General")[key] = value
 		end,
 	}
 
-	-- With Options present, General only mirrors the game's own settings.
+	-- General only mirrors the game's own settings.
 	local function generalMirror()
-		if not Options then return { HudOffset = 0, Overlays = true, ChargeBars = false, BigBooks = true, Announcer = 0 } end
 		return {
 			HudOffset = api.GetOffset(),
 			Overlays = true,
@@ -55,9 +66,9 @@ return function(api, util)
 			saved = ok and decoded or nil
 		end
 		if type(saved) ~= "table" then return nil end
-		local merged = util.MergeOver(util.CopyTable(api.ConfigDefault), saved)
+		local merged = mergeOver(util.CopyTable(api.ConfigDefault), saved, util.CopyTable)
 		util.FillTable(merged, api.Config)
-		if Options then merged.General = generalMirror() end
+		merged.General = generalMirror()
 		api.Config = setmetatable(merged, redirect)
 		return api.Config
 	end

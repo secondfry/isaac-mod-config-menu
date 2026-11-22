@@ -70,7 +70,7 @@ Input = {
 	IsButtonTriggered = function(b, i) return H.triggered[key(b, i)] == true end,
 	IsActionPressed = function(a, i) return H.actionsPressed[key(a, i)] == true end,
 	IsActionTriggered = function(a, i)
-		-- With H.hookActions, entity-less reads pass through MC_INPUT_ACTION as the engine may do (unobserved).
+		-- The pause read passes through MC_INPUT_ACTION (observed after 9dadd85: blocking it stopped Esc pausing); its entity is unobserved, nil here.
 		local hooked = H.hookActions and H.fire(ModCallbacks.MC_INPUT_ACTION, nil, InputHook.IS_ACTION_TRIGGERED, a)
 		if hooked ~= nil then return hooked end
 		return H.actionsTriggered[key(a, i)] == true
@@ -120,13 +120,6 @@ function Isaac.AddPriorityCallback(mod, id, priority, fn, param)
 	table.insert(H.callbacks[id], { Mod = mod, Function = fn, Priority = priority, Param = param })
 end
 function Isaac.AddCallback(mod, id, fn, param) Isaac.AddPriorityCallback(mod, id, 0, fn, param) end
-function Isaac.RemoveCallback(mod, id, fn)
-	local list = H.callbacks[id] or {}
-	for i = #list, 1, -1 do
-		if list[i].Function == fn then table.remove(list, i) end
-	end
-end
-function Isaac.GetCallbacks(id) return H.callbacks[id] or {} end
 function Isaac.SaveModData(mod, data) H.modData = data end
 function Isaac.LoadModData() return H.modData end
 function Isaac.HasModData() return H.modData ~= nil end
@@ -143,8 +136,6 @@ function Isaac.GetChallenge() return 0 end
 function RegisterMod(name, apiVersion)
 	local mod = { Name = name }
 	function mod:AddCallback(id, fn, param) Isaac.AddCallback(self, id, fn, param) end
-	function mod:AddPriorityCallback(id, priority, fn, param) Isaac.AddPriorityCallback(self, id, priority, fn, param) end
-	function mod:RemoveCallback(id, fn) Isaac.RemoveCallback(self, id, fn) end
 	function mod:SaveData(data) Isaac.SaveModData(self, data) end
 	function mod:LoadData() return Isaac.LoadModData(self) end
 	function mod:HasData() return Isaac.HasModData(self) end

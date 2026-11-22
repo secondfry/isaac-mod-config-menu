@@ -1,6 +1,8 @@
 """Syntax-checks every Lua file, then runs each test of tests/test_*.lua in a fresh Lua 5.3 state.
 
-Run from the workspace root: .venv\\Scripts\\python -B -I config-menu\\tests\\run_tests.py
+Needs Python with lupa and the game at the default Steam path; from the repo root: python -B -I tests/run_tests.py
+They stub the Isaac API, load json.lua and enums.lua from the game folder, and load EID's, MinimapAPI's and
+Completion Marks' menu code from the installed mods.
 """
 import pathlib
 import sys

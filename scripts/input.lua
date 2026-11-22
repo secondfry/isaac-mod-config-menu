@@ -1,6 +1,6 @@
--- Input on J510: the keyboard is controller index -2, gamepads 0-4. Index -1 is never read:
--- it is an any-device index, so a key seen there and on -2 would count twice.
-local INDEXES = { -2, 0, 1, 2, 3, 4 }
+-- J510 input: keyboard on index -2, gamepads 0-4; never -1, an any-device index that would count a key twice.
+local KEYBOARD = -2
+local INDEXES = { KEYBOARD, 0, 1, 2, 3, 4 }
 local GAMEPADS = { 0, 1, 2, 3, 4 }
 local DIRECTIONS = {
 	up = { ButtonAction.ACTION_UP, ButtonAction.ACTION_SHOOTUP, ButtonAction.ACTION_MENUUP },
@@ -97,9 +97,9 @@ return function(api, util)
 		return false
 	end
 
-	local function triggeredKey(i)
+	local function triggeredKey()
 		for key = KEY_FIRST, KEY_LAST do
-			if keyOn(Input.IsButtonTriggered, key, i) then return key end
+			if keyOn(Input.IsButtonTriggered, key, KEYBOARD) then return key end
 		end
 	end
 
@@ -124,14 +124,13 @@ return function(api, util)
 		end
 		local back = anyAction(BACK, i, Input.IsActionTriggered) or keyOn(Input.IsButtonTriggered, Keyboard.KEY_BACKSPACE, i)
 		local select = anyAction(SELECT, i, Input.IsActionTriggered)
-		local key = (back or select) and triggeredKey(i)
+		local key = (back or select) and i == KEYBOARD and triggeredKey()
 		if key then api.Config[back and "LastBackPressed" or "LastSelectPressed"] = key end
 		frame.back = frame.back or back
 		frame.select = frame.select or select
 	end
 
-	-- One frame of menu input: OR over every index, so a press seen on two indexes still counts once.
-	-- input.reading lets the MC_INPUT_ACTION block in menu.lua pass the menu's own action reads.
+	-- One frame of menu input, ORed over every index so a press counts once; input.reading lets menu.lua's input block pass these reads.
 	function input.readMenu()
 		local frame = { pressed = {} }
 		input.reading = true
@@ -155,13 +154,7 @@ return function(api, util)
 	end
 
 	function input.capture(optionType)
-		if optionType == api.OptionType.KEYBIND_KEYBOARD then
-			for _, i in ipairs(INDEXES) do
-				local key = triggeredKey(i)
-				if key then return key end
-			end
-			return nil
-		end
+		if optionType == api.OptionType.KEYBIND_KEYBOARD then return triggeredKey() end
 		for button = 0, BUTTON_LAST do
 			if gamepadTriggered(button) then return button end
 		end

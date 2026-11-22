@@ -12,7 +12,7 @@ local INFO_TOP, INFO_LINE, INFO_LINES, INFO_W, INFO_W_WIDE = 184, 12, 3, 260, 37
 local SLIDER_W = 56
 local PAPER_W, PAPER_H, PAPER_MARGIN = 80, 16, 4
 local POPUP_W, POPUP_LINE = 180, 10
-local INK = { 0.42, 0.30, 0.19 }
+local INK = { 1, 1, 0 } -- the open hint's yellow, shared by all menu text (user's choice)
 local RESTART_LINE = "Restart the game to apply some changes"
 local RERUN_LINE = "Start a new run to apply some changes"
 local NOTICE_X, NOTICE_Y, NOTICE_LINE = 70, 30, 10 -- placed like MinimapAPI's own warnings
@@ -241,7 +241,7 @@ return function(api, util, nav)
 		local w, h = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 		local key = api.KeyboardToString[api.Config[util.NAME].OpenMenuKeyboard] or "?"
 		local offset = DeadSeaScrollsMenu and api.WarningOffsetDSS or api.WarningOffset
-		text("Press " .. key .. " to open the " .. util.NAME, 0, h - offset, KColor(1, 1, 0, alpha), w)
+		text("Press " .. key .. " to open the " .. util.NAME, 0, h - offset, ink(alpha), w)
 	end
 
 	-- Drawn open or closed: they stay until the restart or next run they ask for.

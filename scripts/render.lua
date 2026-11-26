@@ -283,7 +283,10 @@ return function(api, util, nav)
 	end
 
 	-- Bottom-left like the test framework's lines, growing upward; wrapped so the long report line stays readable.
-	function render.unsupported(messages)
+	function render.unsupported(calls)
+		local messages = {}
+		for i, call in ipairs(calls) do messages[i] = util.NAME_YET_ANOTHER .. ": " .. call end
+		messages[#messages + 1] = util.REPORT
 		local width = Isaac.GetScreenWidth() - 2 * UNSUPPORTED_LEFT
 		local lines = wrapLines(messages, width, textWidth)
 		local top = Isaac.GetScreenHeight() - UNSUPPORTED_BOTTOM - UNSUPPORTED_LINE * #lines

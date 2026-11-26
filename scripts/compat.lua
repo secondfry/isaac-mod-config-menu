@@ -1,8 +1,6 @@
 -- Legacy API members and deprecated globals old dependents still read; each forwards with a one-time notice.
 -- Unknown method-like members return a no-op stub that names the call on screen once per session.
 -- The stub returns nil, not a dummy table: a truthy dummy from a getter would hide the missing feature from the caller.
-local NOTICE_FRAMES = 900 -- render frames, about 15 seconds
-local REPORT = "Please report it: discord.gg/5KvKaUpsvR (Fry Labs) or github.com/secondfry/isaac-mod-config-menu/issues"
 -- Lua cannot tell MCM.X from MCM.X(), so only verb-named keys get a stub: other fields still read nil for `if MCM.X then` checks.
 local METHOD_VERBS = {
 	"Add", "Get", "Set", "Remove", "Update", "Open", "Close", "Toggle", "Show", "Hide", "Register",
@@ -17,28 +15,14 @@ local function looksLikeMethod(key)
 	return false
 end
 
-return function(api, util, mod, render)
-	local messages, shownUntil = {}, nil -- the clock starts on the first drawn frame: calls at mod load happen before any render
-	local stubs = {}
+return function(api, util, menu)
 	local function stub(key)
-		stubs[key] = stubs[key] or function()
+		return function()
 			local line = "A mod called MCM." .. key .. ", which is not supported yet."
-			if util.warnOnce("unsupported " .. key, line .. " " .. REPORT) then
-				messages[#messages + 1] = "Yet Another Mod Config Menu: " .. line
-				shownUntil = nil -- a new name restarts the clock
-			end
+			if util.warnOnce("unsupported " .. key, line .. " " .. util.REPORT) then menu.noticeUnsupported(line) end
 			return nil
 		end
-		return stubs[key]
 	end
-	mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
-		if #messages == 0 then return end
-		shownUntil = shownUntil or Isaac.GetFrameCount() + NOTICE_FRAMES
-		if Isaac.GetFrameCount() > shownUntil then messages = {} return end
-		local lines = { table.unpack(messages) }
-		lines[#lines + 1] = REPORT
-		render.unsupported(lines)
-	end)
 
 	local LEGACY_MEMBERS = {
 		Game = function() return Game() end,

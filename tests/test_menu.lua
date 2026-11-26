@@ -95,6 +95,27 @@ test("another copy loaded later shows the notice from the next game start", func
 	eq(api.IsVisible, false, "menu untouched")
 end)
 
+test("an unsupported method call returns nil and shows a notice once; other unknown fields stay nil", function()
+	local api = open()
+	eq(MCM.SomeFlag, nil, "a non-method field reads nil")
+	eq(api.IsSomething, nil, "Is-prefixed names stay nil like the IsVisible field")
+	eq(rawget(api, "AddPopup"), nil, "nothing stored on the table")
+	eq(MCM.AddPopup("x"), nil, "call returns nil")
+	ModConfigMenu.AddPopup("y")
+	local count = 0
+	for _, s in ipairs(H.log) do
+		if s:find("MCM.AddPopup", 1, true) then count = count + 1 end
+	end
+	eq(count, 1, "logged once")
+	H.render()
+	ok(drawn("called MCM%.AddPopup"), "notice drawn")
+	ok(drawn("github%.com/secondfry/isaac%-mod%-config%-menu/issues"), "report link drawn")
+	H.frame = H.frame + 301
+	H.texts = {}
+	H.render()
+	ok(not drawn("AddPopup"), "notice gone after about 5 seconds")
+end)
+
 test("pages list alphabetically by default, own page first, ties by load order; off means load order", function()
 	local api = open()
 	for _, name in ipairs({ "b", "A", "same", "c", "Same" }) do

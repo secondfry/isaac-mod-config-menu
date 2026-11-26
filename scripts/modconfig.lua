@@ -33,7 +33,7 @@ local render = include("scripts.render")(api, util, nav)
 local menu = include("scripts.menu")(api, util, mod, input, nav, render)
 include("scripts.builtin")(api, util, menu)
 include("scripts.filepath")(api)
-include("scripts.compat")(api, util)
+include("scripts.compat")(api, util, mod, render)
 -- An older copy loaded first keeps running beside this one; the player is told to keep only one.
 if existing then menu.noticeOtherCopy() end
 menu.load()

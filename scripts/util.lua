@@ -13,6 +13,7 @@ function util.warnOnce(key, message)
 	local line = "[" .. util.NAME .. "] " .. message
 	print(line)
 	Isaac.DebugString(line)
+	return true
 end
 
 function util.deprecated(name, replacement)

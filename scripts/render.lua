@@ -1,4 +1,4 @@
--- Draws the open menu, the first-run hint, the warning lines and the other-copy notice; layout numbers are approximate.
+-- Draws the open menu, the first-run hint, the warning lines and the other-copy and unsupported-call notices; layout numbers are approximate.
 local ANM2 = "gfx/configmenu/menu.anm2"
 local FONT = "font/cjk/lanapixel.fnt" -- the game's CJK font, for all text (user's choice)
 local POPUP_LAYER = 1
@@ -278,6 +278,16 @@ return function(api, util, nav)
 	function render.notice()
 		for i, line in ipairs(NOTICE_LINES) do
 			text(line, NOTICE_X, NOTICE_Y + (i - 1) * NOTICE_LINE, ink(1, NOTICE_RGB))
+		end
+	end
+
+	-- Below the other-copy notice, wrapped to the screen so the long report line stays readable.
+	function render.unsupported(messages)
+		local width = Isaac.GetScreenWidth() - 2 * NOTICE_X
+		local y = NOTICE_Y + (#NOTICE_LINES + 1) * NOTICE_LINE
+		for _, line in ipairs(wrapLines(messages, width, textWidth)) do
+			text(line, NOTICE_X, y, ink(1, NOTICE_RGB))
+			y = y + NOTICE_LINE
 		end
 	end
 

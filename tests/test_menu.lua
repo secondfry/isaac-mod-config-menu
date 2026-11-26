@@ -107,10 +107,16 @@ test("an unsupported method call returns nil and shows a notice once; other unkn
 		if s:find("MCM.AddPopup", 1, true) then count = count + 1 end
 	end
 	eq(count, 1, "logged once")
+	H.frame = H.frame + 400 -- a call at mod load: no render until the title screen draws
 	H.render()
-	ok(drawn("called MCM%.AddPopup"), "notice drawn")
+	ok(drawn("called MCM%.AddPopup"), "notice drawn on its first rendered frame")
 	ok(drawn("github%.com/secondfry/isaac%-mod%-config%-menu/issues"), "report link drawn")
-	H.frame = H.frame + 301
+	ok(drawn("discord%.gg/5KvKaUpsvR"), "Discord link drawn")
+	H.frame = H.frame + 300
+	H.texts = {}
+	H.render()
+	ok(drawn("AddPopup"), "still shown 300 frames after it first drew")
+	H.frame = H.frame + 1
 	H.texts = {}
 	H.render()
 	ok(not drawn("AddPopup"), "notice gone after about 5 seconds")

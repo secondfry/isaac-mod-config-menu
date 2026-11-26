@@ -18,6 +18,7 @@ local NOTICE_RGB = { 1, 0.5, 0.5 }
 local RESTART_LINE = "Restart the game to apply some changes"
 local RERUN_LINE = "Start a new run to apply some changes"
 local NOTICE_X, NOTICE_Y, NOTICE_LINE = 70, 30, 10 -- placed like MinimapAPI's own warnings
+local UNSUPPORTED_LEFT, UNSUPPORTED_BOTTOM, UNSUPPORTED_LINE = 24, 50, 14 -- the test framework's result-line offsets
 local NOTICE_LINES = {
 	"More than one Mod Config Menu mod is enabled.",
 	"Only one Mod Config Menu mod should be enabled at a time.",
@@ -281,13 +282,13 @@ return function(api, util, nav)
 		end
 	end
 
-	-- Below the other-copy notice, wrapped to the screen so the long report line stays readable.
+	-- Bottom-left like the test framework's lines, growing upward; wrapped so the long report line stays readable.
 	function render.unsupported(messages)
-		local width = Isaac.GetScreenWidth() - 2 * NOTICE_X
-		local y = NOTICE_Y + (#NOTICE_LINES + 1) * NOTICE_LINE
-		for _, line in ipairs(wrapLines(messages, width, textWidth)) do
-			text(line, NOTICE_X, y, ink(1, NOTICE_RGB))
-			y = y + NOTICE_LINE
+		local width = Isaac.GetScreenWidth() - 2 * UNSUPPORTED_LEFT
+		local lines = wrapLines(messages, width, textWidth)
+		local top = Isaac.GetScreenHeight() - UNSUPPORTED_BOTTOM - UNSUPPORTED_LINE * #lines
+		for i, line in ipairs(lines) do
+			text(line, UNSUPPORTED_LEFT, top + UNSUPPORTED_LINE * (i - 1), ink(1, NOTICE_RGB))
 		end
 	end
 

@@ -1,7 +1,7 @@
 -- Legacy API members and deprecated globals old dependents still read; each forwards with a one-time notice.
 -- Unknown method-like members return a no-op stub that names the call on screen once per session.
 -- The stub returns nil, not a dummy table: a truthy dummy from a getter would hide the missing feature from the caller.
-local NOTICE_FRAMES = 300 -- render frames, about 5 seconds
+local NOTICE_FRAMES = 900 -- render frames, about 15 seconds
 local REPORT = "Please report it: discord.gg/5KvKaUpsvR (Fry Labs) or github.com/secondfry/isaac-mod-config-menu/issues"
 -- Lua cannot tell MCM.X from MCM.X(), so only verb-named keys get a stub: other fields still read nil for `if MCM.X then` checks.
 local METHOD_VERBS = {

@@ -112,14 +112,14 @@ test("an unsupported method call returns nil and shows a notice once; other unkn
 	ok(drawn("called MCM%.AddPopup"), "notice drawn on its first rendered frame")
 	ok(drawn("github%.com/secondfry/isaac%-mod%-config%-menu/issues"), "report link drawn")
 	ok(drawn("discord%.gg/5KvKaUpsvR"), "Discord link drawn")
-	H.frame = H.frame + 300
+	H.frame = H.frame + 900
 	H.texts = {}
 	H.render()
-	ok(drawn("AddPopup"), "still shown 300 frames after it first drew")
+	ok(drawn("AddPopup"), "still shown 900 frames after it first drew")
 	H.frame = H.frame + 1
 	H.texts = {}
 	H.render()
-	ok(not drawn("AddPopup"), "notice gone after about 5 seconds")
+	ok(not drawn("AddPopup"), "notice gone after about 15 seconds")
 end)
 
 test("pages list alphabetically by default, own page first, ties by load order; off means load order", function()

@@ -7,9 +7,10 @@ local NIL_FIELDS = { CurrentCategory = true, CurrentSubcategory = true, CurrentO
 
 return function(api, util, menu)
 	local function stub(key)
+		local name = tostring(key) -- keys can be any value (MCM[true]); concatenation needs a string
 		return function()
-			local line = "A mod called MCM." .. tostring(key) .. ", which is not supported yet."
-			if util.warnOnce("unsupported " .. key, line .. " " .. util.REPORT) then menu.noticeUnsupported(line) end
+			local line = "A mod called MCM." .. name .. ", which is not supported yet."
+			if util.warnOnce("unsupported " .. name, line .. " " .. util.REPORT) then menu.noticeUnsupported(line) end
 			return nil
 		end
 	end

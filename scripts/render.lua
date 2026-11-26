@@ -1,4 +1,4 @@
--- Draws the open menu, the first-run hint, the warning lines and the other-copy notice; layout numbers are approximate.
+-- Draws the open menu, the first-run hint, the warning lines and the other-copy and unsupported-call notices; layout numbers are approximate.
 local ANM2 = "gfx/configmenu/menu.anm2"
 local FONT = "font/cjk/lanapixel.fnt" -- the game's CJK font, for all text (user's choice)
 local POPUP_LAYER = 1
@@ -18,6 +18,7 @@ local NOTICE_RGB = { 1, 0.5, 0.5 }
 local RESTART_LINE = "Restart the game to apply some changes"
 local RERUN_LINE = "Start a new run to apply some changes"
 local NOTICE_X, NOTICE_Y, NOTICE_LINE = 70, 30, 10 -- placed like MinimapAPI's own warnings
+local UNSUPPORTED_LEFT, UNSUPPORTED_BOTTOM, UNSUPPORTED_LINE = 24, 50, 14 -- the test framework's result-line offsets
 local NOTICE_LINES = {
 	"More than one Mod Config Menu mod is enabled.",
 	"Only one Mod Config Menu mod should be enabled at a time.",
@@ -278,6 +279,19 @@ return function(api, util, nav)
 	function render.notice()
 		for i, line in ipairs(NOTICE_LINES) do
 			text(line, NOTICE_X, NOTICE_Y + (i - 1) * NOTICE_LINE, ink(1, NOTICE_RGB))
+		end
+	end
+
+	-- Bottom-left like the test framework's lines, growing upward; wrapped so the long report line stays readable.
+	function render.unsupported(calls)
+		local messages = {}
+		for i, call in ipairs(calls) do messages[i] = util.NAME_YET_ANOTHER .. ": " .. call end
+		messages[#messages + 1] = util.REPORT
+		local width = Isaac.GetScreenWidth() - 2 * UNSUPPORTED_LEFT
+		local lines = wrapLines(messages, width, textWidth)
+		local top = Isaac.GetScreenHeight() - UNSUPPORTED_BOTTOM - UNSUPPORTED_LINE * #lines
+		for i, line in ipairs(lines) do
+			text(line, UNSUPPORTED_LEFT, top + UNSUPPORTED_LINE * (i - 1), ink(1, NOTICE_RGB))
 		end
 	end
 

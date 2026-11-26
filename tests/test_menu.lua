@@ -95,6 +95,33 @@ test("another copy loaded later shows the notice from the next game start", func
 	eq(api.IsVisible, false, "menu untouched")
 end)
 
+test("an unsupported call returns nil and shows a notice once, whatever the name", function()
+	local api = open()
+	eq(MCM.Frobnicate(), nil, "a non-verb name is stubbed too")
+	eq(rawget(api, "AddPopup"), nil, "nothing stored on the table")
+	eq(api.CurrentOption, nil, "an unfocused Current* field still reads nil")
+	eq(MCM.AddPopup("x"), nil, "call returns nil")
+	ModConfigMenu.AddPopup("y")
+	local count = 0
+	for _, s in ipairs(H.log) do
+		if s:find("MCM.AddPopup", 1, true) then count = count + 1 end
+	end
+	eq(count, 1, "logged once")
+	H.frame = H.frame + 400 -- a call at mod load: no render until the title screen draws
+	H.render()
+	ok(drawn("called MCM%.AddPopup"), "notice drawn on its first rendered frame")
+	ok(drawn("github%.com/secondfry/isaac%-mod%-config%-menu/issues"), "report link drawn")
+	ok(drawn("discord%.gg/5KvKaUpsvR"), "Discord link drawn")
+	H.frame = H.frame + 900
+	H.texts = {}
+	H.render()
+	ok(drawn("AddPopup"), "still shown 900 frames after it first drew")
+	H.frame = H.frame + 1
+	H.texts = {}
+	H.render()
+	ok(not drawn("AddPopup"), "notice gone after about 15 seconds")
+end)
+
 test("pages list alphabetically by default, own page first, ties by load order; off means load order", function()
 	local api = open()
 	for _, name in ipairs({ "b", "A", "same", "c", "Same" }) do

@@ -1,5 +1,20 @@
 -- Legacy API members and deprecated globals old dependents still read; each forwards with a one-time notice.
-return function(api, util)
+-- Unknown members return a no-op stub that names the call on screen once per session.
+-- The stub returns nil, not a dummy table: a truthy dummy from a getter would hide the missing feature from the caller.
+-- shortcut: Lua cannot tell MCM.X from MCM.X(), so `if MCM.Unknown then` now passes; filter names if a mod is seen relying on that.
+-- Public fields that are nil while nothing is focused: mods test them with `if MCM.CurrentOption then`.
+local NIL_FIELDS = { CurrentCategory = true, CurrentSubcategory = true, CurrentOption = true }
+
+return function(api, util, menu)
+	local function stub(key)
+		local name = tostring(key) -- keys can be any value (MCM[true]); concatenation needs a string
+		return function()
+			local line = "A mod called MCM." .. name .. ", which is not supported yet."
+			if util.warnOnce("unsupported " .. name, line .. " " .. util.REPORT) then menu.noticeUnsupported(line) end
+			return nil
+		end
+	end
+
 	local LEGACY_MEMBERS = {
 		Game = function() return Game() end,
 		Seeds = function() return Game():GetSeeds() end,
@@ -16,7 +31,8 @@ return function(api, util)
 	setmetatable(api, {
 		__index = function(_, key)
 			local make = LEGACY_MEMBERS[key]
-			if not make then return nil end
+			if NIL_FIELDS[key] then return nil end
+			if not make then return stub(key) end
 			util.deprecated("ModConfigMenu." .. key, "the game API directly")
 			return make()
 		end,

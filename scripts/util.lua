@@ -3,6 +3,8 @@ local util = {}
 
 -- The mod's name, its page and its Config section; EID reads Config["Mod Config Menu"].HideHudInMenu.
 util.NAME = "Mod Config Menu"
+util.NAME_YET_ANOTHER = "Yet Another Mod Config Menu" -- the Workshop title; NAME stays for EID's Config lookup
+util.REPORT = "Please report it: discord.gg/5KvKaUpsvR (Fry Labs) or github.com/secondfry/isaac-mod-config-menu/issues"
 util.UNCATEGORIZED = "Uncategorized" -- the default subcategory; a category with only this one has no tab bar
 util.SCROLL_MAX = 10 -- SCROLL rows run 0 to this
 
@@ -13,6 +15,7 @@ function util.warnOnce(key, message)
 	local line = "[" .. util.NAME .. "] " .. message
 	print(line)
 	Isaac.DebugString(line)
+	return true
 end
 
 function util.deprecated(name, replacement)

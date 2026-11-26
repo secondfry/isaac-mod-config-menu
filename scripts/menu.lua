@@ -1,5 +1,6 @@
 -- Opening and closing, room safety, frozen players, saving, and the game callbacks that drive the menu.
 local HINT_UPDATES, HINT_FADE = 120, 60
+local UNSUPPORTED_FRAMES = 900 -- render frames, about 15 seconds; render frames also run while paused, updates do not
 local COMMANDS = { modconfigmenu = true, modconfig = true, mcm = true, mc = true }
 local PAUSE_ACTIONS = { [ButtonAction.ACTION_PAUSE] = true, [ButtonAction.ACTION_MENUBACK] = true }
 
@@ -16,6 +17,7 @@ return function(api, util, mod, input, nav, render)
 	local hintTimer, hintShown = 0, false
 	local gameRunning = false -- a save before this game's load would write into the wrong save slot
 	local otherCopy = false
+	local unsupported, unsupportedUntil = {}, nil -- the clock starts on the first drawn frame: calls at mod load come before any render
 
 	local function applyHud()
 		if not api.IsVisible then return end
@@ -131,10 +133,18 @@ return function(api, util, mod, input, nav, render)
 		if hintTimer > 0 then render.hint(math.min(1, hintTimer / HINT_FADE)) end
 	end
 
+	local function drawUnsupported()
+		if #unsupported == 0 then return end
+		unsupportedUntil = unsupportedUntil or Isaac.GetFrameCount() + UNSUPPORTED_FRAMES
+		if Isaac.GetFrameCount() > unsupportedUntil then unsupported = {} return end
+		render.unsupported(unsupported)
+	end
+
 	local function onRender()
 		stepMenu()
 		render.warnings()
 		if otherCopy then render.notice() end
+		drawUnsupported()
 	end
 
 	-- Catches only a later copy that reassigns the globals; one that requires scripts.modconfig gets this table.
@@ -203,5 +213,10 @@ return function(api, util, mod, input, nav, render)
 		moveDssOffOurStick = moveDssOffOurStick,
 		load = load,
 		noticeOtherCopy = function() otherCopy = true end,
+		-- A new line restarts the clock, so the latest call gets its full time on screen.
+		noticeUnsupported = function(line)
+			unsupported[#unsupported + 1] = line
+			unsupportedUntil = nil
+		end,
 	}
 end

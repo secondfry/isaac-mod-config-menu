@@ -5,7 +5,7 @@
     <id>3844329336</id>
     <description>A settings menu for other mods. It provides the Mod Config Menu API (the ModConfigMenu and MCM globals) that mods such as External Item Descriptions, MinimapAPI, Stats+ and Completion Marks use for their settings pages. Those mods work with it unchanged.
 
-Made for Repentance+ v1.9.7.19 without REPENTOGON (not tested with REPENTOGON). Works with that version's new keyboard input.
+Made for Repentance+ v1.9.7.19 and tested on v1.9.7.20, without REPENTOGON (not tested with REPENTOGON). Works with the new keyboard input from v1.9.7.19.
 
 [b]Enable only one Mod Config Menu mod.[/b] Do not run this alongside Mod Config Menu Impure or Mod Config Menu Pure.
 
@@ -19,6 +19,7 @@ Made for Repentance+ v1.9.7.19 without REPENTOGON (not tested with REPENTOGON). 
 
 [h1]Support[/h1]
 Bugs, questions, ideas: [url=https://discord.gg/5KvKaUpsvR]Discord[/url]
+If a mod uses a menu function this menu does not have yet, nothing breaks: a notice at the bottom left names the function. Please report it there or on GitHub.
 
 [h1]Credits and licence[/h1]
 The Mod Config Menu API was designed by piber20 for the original Mod Config Menu. This is an independent rewrite, written from a description of the original's behaviour without its code, and with its own art. Not affiliated with the original or its forks. MIT licence. Source: https://github.com/secondfry/isaac-mod-config-menu</description>

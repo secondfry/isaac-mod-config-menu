@@ -20,7 +20,7 @@ local api = {
 	FillTable = util.FillTable,
 	ConvertDisplayToTextTable = util.ConvertDisplayToTextTable,
 }
-function api.GetVersionString() return "1.1" end
+function api.GetVersionString() return "1.2" end
 
 include("scripts.registry")(api, util)
 local keys = include("scripts.keys")(api, util)

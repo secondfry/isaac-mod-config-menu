@@ -95,11 +95,11 @@ test("another copy loaded later shows the notice from the next game start", func
 	eq(api.IsVisible, false, "menu untouched")
 end)
 
-test("an unsupported method call returns nil and shows a notice once; other unknown fields stay nil", function()
+test("an unsupported call returns nil and shows a notice once, whatever the name", function()
 	local api = open()
-	eq(MCM.SomeFlag, nil, "a non-method field reads nil")
-	eq(api.IsSomething, nil, "Is-prefixed names stay nil like the IsVisible field")
+	eq(MCM.Frobnicate(), nil, "a non-verb name is stubbed too")
 	eq(rawget(api, "AddPopup"), nil, "nothing stored on the table")
+	eq(api.CurrentOption, nil, "an unfocused Current* field still reads nil")
 	eq(MCM.AddPopup("x"), nil, "call returns nil")
 	ModConfigMenu.AddPopup("y")
 	local count = 0

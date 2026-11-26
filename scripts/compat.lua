@@ -1,24 +1,14 @@
 -- Legacy API members and deprecated globals old dependents still read; each forwards with a one-time notice.
--- Unknown method-like members return a no-op stub that names the call on screen once per session.
+-- Unknown members return a no-op stub that names the call on screen once per session.
 -- The stub returns nil, not a dummy table: a truthy dummy from a getter would hide the missing feature from the caller.
--- Lua cannot tell MCM.X from MCM.X(), so only verb-named keys get a stub: other fields still read nil for `if MCM.X then` checks.
-local METHOD_VERBS = {
-	"Add", "Get", "Set", "Remove", "Update", "Open", "Close", "Toggle", "Show", "Hide", "Register",
-	"Reset", "Save", "Load", "Draw", "Create", "Change", "Clear", "Delete", "Insert", "Refresh",
-}
-
-local function looksLikeMethod(key)
-	if type(key) ~= "string" then return false end
-	for _, verb in ipairs(METHOD_VERBS) do
-		if key:sub(1, #verb) == verb and key:sub(#verb + 1, #verb + 1):match("[%u%d_]") then return true end
-	end
-	return false
-end
+-- shortcut: Lua cannot tell MCM.X from MCM.X(), so `if MCM.Unknown then` now passes; filter names if a mod is seen relying on that.
+-- Public fields that are nil while nothing is focused: mods test them with `if MCM.CurrentOption then`.
+local NIL_FIELDS = { CurrentCategory = true, CurrentSubcategory = true, CurrentOption = true }
 
 return function(api, util, menu)
 	local function stub(key)
 		return function()
-			local line = "A mod called MCM." .. key .. ", which is not supported yet."
+			local line = "A mod called MCM." .. tostring(key) .. ", which is not supported yet."
 			if util.warnOnce("unsupported " .. key, line .. " " .. util.REPORT) then menu.noticeUnsupported(line) end
 			return nil
 		end
@@ -40,7 +30,8 @@ return function(api, util, menu)
 	setmetatable(api, {
 		__index = function(_, key)
 			local make = LEGACY_MEMBERS[key]
-			if not make then return looksLikeMethod(key) and stub(key) or nil end
+			if NIL_FIELDS[key] then return nil end
+			if not make then return stub(key) end
 			util.deprecated("ModConfigMenu." .. key, "the game API directly")
 			return make()
 		end,
